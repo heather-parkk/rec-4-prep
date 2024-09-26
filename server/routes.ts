@@ -1,10 +1,14 @@
 import { ObjectId } from "mongodb";
 
-import { Router, getExpressRouter } from "./framework/router";
+import { getExpressRouter, Router } from "./framework/router";
 
 import { Authing, Posting, Sessioning } from "./app";
 import { PostOptions } from "./concepts/posting";
 import { SessionDoc } from "./concepts/sessioning";
+
+// Add errors
+import { NotAllowedError } from "./concepts/errors";
+
 
 /**
  * Web server routes for the app. Implements synchronizations between concepts.
@@ -71,8 +75,17 @@ class Routes {
   async deletePost(session: SessionDoc, id: string) {
     // TODO 3: delete the post with the given ID
     //  - require the user deleting to be the author of the post (review `updatePost` above)
-    throw new Error("Not implemented!");
-  }
+    const user = Sessioning.getUser(session);
+        const oid = new ObjectId(id);
+
+        try {
+            await Posting.assertAuthorIsUser(oid, user);
+            await Posting.delete(oid);
+            return { msg: "Post deleted." };
+        } catch (error) {
+            throw new NotAllowedError("Post delete failed. You are not the author of this post.");
+        }
+    }
 }
 
 /** The web app. */
